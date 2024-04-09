@@ -37,14 +37,19 @@ public class KafkaMessageTableView extends TableView<KafkaMessage> {
     private void buildTableColumns() {
         TableColumn<KafkaMessage, Long> messageOffsetColumn = new TableColumn<>("Offset");
         messageOffsetColumn.setCellValueFactory(new PropertyValueFactory<>("offset"));
+        messageOffsetColumn.setPrefWidth(50);
 
         TableColumn<KafkaMessage, Integer> messagePartitionColumn = new TableColumn<>("Partition");
         messagePartitionColumn.setCellValueFactory(new PropertyValueFactory<>("partition"));
+        messagePartitionColumn.setPrefWidth(60);
 
         TableColumn<KafkaMessage, String> messageTimestampColumn = new TableColumn<>("Timestamp");
         messageTimestampColumn.setCellValueFactory(new PropertyValueFactory<>("timestamp"));
+        messageTimestampColumn.setPrefWidth(150);
+        messageTimestampColumn.setSortType(TableColumn.SortType.DESCENDING);
 
         TableColumn<KafkaMessage, String> messageKeyColumn = new TableColumn<>("Key");
+        messageKeyColumn.setPrefWidth(200);
         messageKeyColumn.setCellValueFactory(param -> {
             if (param.getValue() != null && param.getValue().getKey() != null) {
                 return new SimpleStringProperty(param.getValue().getKey().replaceAll("\\r\\n|\\r|\\n", " "));
@@ -56,6 +61,7 @@ public class KafkaMessageTableView extends TableView<KafkaMessage> {
         messageKeyColumn.setCellFactory(param -> getNullMarkingTableCell("NULL", Color.GRAY));
 
         TableColumn<KafkaMessage, String> messageValueColumn = new TableColumn<>("Value");
+        messageValueColumn.setPrefWidth(600);
         messageValueColumn.setCellValueFactory(param -> {
             if (param.getValue() != null && param.getValue().getValue() != null) {
                 return new SimpleStringProperty(param.getValue().getValue().replaceAll("\\r\\n|\\r|\\n", " "));
@@ -65,6 +71,7 @@ public class KafkaMessageTableView extends TableView<KafkaMessage> {
         });
         messageValueColumn.setCellFactory(param -> getNullMarkingTableCell("NULL/Tombstone", Color.GRAY));
         this.getColumns().addAll(messageTimestampColumn, messagePartitionColumn, messageOffsetColumn, messageKeyColumn, messageValueColumn);
+        this.getSortOrder().add(messageTimestampColumn);
     }
 
     @NotNull
