@@ -46,7 +46,6 @@ public class KafkaMessageTableView extends TableView<KafkaMessage> {
         TableColumn<KafkaMessage, String> messageTimestampColumn = new TableColumn<>("Timestamp");
         messageTimestampColumn.setCellValueFactory(new PropertyValueFactory<>("timestamp"));
         messageTimestampColumn.setPrefWidth(150);
-        messageTimestampColumn.setSortType(TableColumn.SortType.DESCENDING);
 
         TableColumn<KafkaMessage, String> messageKeyColumn = new TableColumn<>("Key");
         messageKeyColumn.setPrefWidth(200);
@@ -71,7 +70,6 @@ public class KafkaMessageTableView extends TableView<KafkaMessage> {
         });
         messageValueColumn.setCellFactory(param -> getNullMarkingTableCell("NULL/Tombstone", Color.GRAY));
         this.getColumns().addAll(messageTimestampColumn, messagePartitionColumn, messageOffsetColumn, messageKeyColumn, messageValueColumn);
-        this.getSortOrder().add(messageTimestampColumn);
     }
 
     @NotNull
