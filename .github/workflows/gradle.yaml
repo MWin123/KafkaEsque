@@ -137,10 +137,10 @@ jobs:
         with:
           formula-name: homebrew-esque
           formula-path: Casks/kafkaesque.rb
-          homebrew-tap: patschuh/homebrew-esque
+          homebrew-tap: MWin123/homebrew-esque
           base-branch: main
           create-pullrequest: true
           tag-name: ${{ steps.extract-version.outputs.tag-name }}
-          download-url: https://github.com/patschuh/KafkaEsque/releases/download/v${{ steps.extract-version.outputs.tag-name }}/KafkaEsque-${{ steps.extract-version.outputs.tag-name }}.dmg
+          download-url: https://github.com/MWin123/KafkaEsque/releases/download/v${{ steps.extract-version.outputs.tag-name }}/KafkaEsque-${{ steps.extract-version.outputs.tag-name }}.dmg
         env:
           COMMITTER_TOKEN: ${{ secrets.COMMITTER_TOKEN }}
