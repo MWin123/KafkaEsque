@@ -1,11 +1,11 @@
-package at.esque.kafka.topics;
+package at.esque.kafka.topics.model;
 
-public class KafkaMessagBookWrapper {
+public class KafkaMessageBookWrapper {
 
     private String targetTopic;
-    private KafkaMessage wrappedMessage;
+    private KafkaMessageForMessageBook wrappedMessage;
 
-    public KafkaMessagBookWrapper(String targetTopic, KafkaMessage wrappedMessage) {
+    public KafkaMessageBookWrapper(String targetTopic, KafkaMessageForMessageBook wrappedMessage) {
         this.targetTopic = targetTopic;
         this.wrappedMessage = wrappedMessage;
     }
@@ -14,7 +14,7 @@ public class KafkaMessagBookWrapper {
         return targetTopic;
     }
 
-    public KafkaMessage getWrappedMessage() {
+    public KafkaMessageForMessageBook getWrappedMessage() {
         return wrappedMessage;
     }
 
@@ -57,6 +57,4 @@ public class KafkaMessagBookWrapper {
     public String getTimestamp() {
         return wrappedMessage.getTimestamp();
     }
-
-
 }

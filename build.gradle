@@ -124,4 +124,8 @@ task versionFile() {
     }
 }
 
+test {
+    useJUnit()
+}
+
 tasks.named('processResources') { dependsOn('versionFile') }

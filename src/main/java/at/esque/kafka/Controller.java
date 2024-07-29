@@ -30,8 +30,9 @@ import at.esque.kafka.lag.viewer.LagViewerController;
 import at.esque.kafka.topics.CreateTopicController;
 import at.esque.kafka.topics.DescribeTopicController;
 import at.esque.kafka.topics.DescribeTopicWrapper;
-import at.esque.kafka.topics.KafkaMessagBookWrapper;
+import at.esque.kafka.topics.model.KafkaMessageBookWrapper;
 import at.esque.kafka.topics.KafkaMessage;
+import at.esque.kafka.topics.model.KafkaMessageForMessageBook;
 import at.esque.kafka.topics.metadata.MessageMetaData;
 import at.esque.kafka.topics.metadata.NumericMetadata;
 import at.esque.kafka.topics.metadata.StringMetadata;
@@ -1478,7 +1479,7 @@ public class Controller {
                     backGroundTaskHolder.setIsInProgress(true);
                     List<File> listedFiles = Arrays.asList(Objects.requireNonNull(selectedFolder.listFiles()));
                     Map<String, String> replacementMap = new HashMap<>();
-                    List<KafkaMessagBookWrapper> messagesToSend = new ArrayList<>();
+                    List<KafkaMessageBookWrapper> messagesToSend = new ArrayList<>();
                     Platform.runLater(() -> backGroundTaskHolder.setBackGroundTaskDescription("Playing Message Book: scanning messages"));
                     listedFiles.forEach(file -> {
                         if (!topicListView.getBaseList().contains(file.getName())) {
@@ -1492,7 +1493,7 @@ public class Controller {
                     applyReplacements(messagesToSend, replacementMap);
                     Platform.runLater(() -> backGroundTaskHolder.setBackGroundTaskDescription("Playing Message Book: producing messages"));
                     AtomicInteger counter = new AtomicInteger(0);
-                    messagesToSend.stream().sorted(Comparator.comparing(KafkaMessagBookWrapper::getTimestamp, Comparator.nullsLast(Comparator.naturalOrder())))
+                    messagesToSend.stream().sorted(Comparator.comparing(KafkaMessageBookWrapper::getTimestamp, Comparator.nullsLast(Comparator.naturalOrder())))
                             .forEach(message -> {
                                 try {
                                     UUID producerId = topicToProducerMap.computeIfAbsent(message.getTargetTopic(), targetTopic -> {
@@ -1521,26 +1522,26 @@ public class Controller {
         }
     }
 
-    private void applyReplacements(List<KafkaMessagBookWrapper> messagesToSend, Map<String, String> replacementMap) {
+    private void applyReplacements(List<KafkaMessageBookWrapper> messagesToSend, Map<String, String> replacementMap) {
         messagesToSend.forEach(messageToSend -> replacementMap.forEach((key, value) -> {
             messageToSend.setKey(messageToSend.getKey().replace(key, value));
             messageToSend.setValue(messageToSend.getValue().replace(key, value));
         }));
     }
 
-    private void addMessagesToSend(List<KafkaMessagBookWrapper> messagesToSend, File playFile) {
+    void addMessagesToSend(List<KafkaMessageBookWrapper> messagesToSend, File playFile) {
         try {
-            List<KafkaMessage> messages = new CsvToBeanBuilder<KafkaMessage>(new FileReader(playFile.getAbsolutePath()))
-                    .withType(KafkaMessage.class)
+            List<KafkaMessageForMessageBook> messages = new CsvToBeanBuilder<KafkaMessageForMessageBook>(new FileReader(playFile.getAbsolutePath()))
+                    .withType(KafkaMessageForMessageBook.class)
                     .build().parse();
-            messagesToSend.addAll(messages.stream().map(message -> new KafkaMessagBookWrapper(playFile.getName(), message))
+            messagesToSend.addAll(messages.stream().map(message -> new KafkaMessageBookWrapper(playFile.getName(), message))
                     .toList());
         } catch (FileNotFoundException e) {
             Platform.runLater(() -> ErrorAlert.show(e, controlledStage));
         }
     }
 
-    private void addReplacementEntries(Map<String, String> replacementMap, KafkaMessagBookWrapper message) {
+    private void addReplacementEntries(Map<String, String> replacementMap, KafkaMessageBookWrapper message) {
         addReplacementEntries(replacementMap, message.getKey());
         addReplacementEntries(replacementMap, message.getValue());
     }
