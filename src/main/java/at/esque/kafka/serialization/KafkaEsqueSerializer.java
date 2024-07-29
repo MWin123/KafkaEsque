@@ -25,9 +25,10 @@ public class KafkaEsqueSerializer implements Serializer<Object> {
     private KafkaProtobufSerializer protobufSerializer = new KafkaProtobufSerializer();
 
     private static final List<MessageType> AVRO_TYPES = Arrays.asList(MessageType.AVRO, MessageType.AVRO_TOPIC_RECORD_NAME_STRATEGY);
+    private static final List<MessageType> REQUIRES_SCHEMAREGISTRY_TYPES = Arrays.asList(MessageType.AVRO, MessageType.AVRO_TOPIC_RECORD_NAME_STRATEGY, MessageType.PROTOBUF_SR);
 
     private Map<MessageType, SerializerWrapper> serializerMap = new EnumMap<MessageType, SerializerWrapper>(MessageType.class) {{
-        Arrays.stream(MessageType.values()).filter(type -> !AVRO_TYPES.contains(type)).forEach(type -> put(type, serializerByType(type)));
+        Arrays.stream(MessageType.values()).filter(type -> !REQUIRES_SCHEMAREGISTRY_TYPES.contains(type)).forEach(type -> put(type, serializerByType(type)));
     }};
 
     private String clusterId;
@@ -42,8 +43,13 @@ public class KafkaEsqueSerializer implements Serializer<Object> {
         TopicMessageTypeConfig topicConfig = configHandler.getConfigForTopic(clusterId, s);
         if (isKey ? AVRO_TYPES.contains(topicConfig.getKeyType()) : AVRO_TYPES.contains(topicConfig.getValueType())) {
             return avroSerializer.serialize(s, object);
-        } else if ((isKey ? MessageType.PROTOBUF_SR.equals(topicConfig.getKeyType()) : MessageType.PROTOBUF_SR.equals(topicConfig.getValueType())) && object instanceof Message message) {
-            return protobufSerializer.serialize(s, message);
+        } else if ((isKey ? MessageType.PROTOBUF_SR.equals(topicConfig.getKeyType()) : MessageType.PROTOBUF_SR.equals(topicConfig.getValueType()))) {
+            if (object instanceof Message message)
+                return protobufSerializer.serialize(s, message);
+            else if (object instanceof String jsonString) {
+                return protobufSerializer.serialize(s, JsonUtils.fromJson(jsonString));
+            }
+            throw new UnsupportedOperationException("Serializer for MessageType " + MessageType.PROTOBUF_SR + " does not support serializing type: " + object.getClass());
         } else {
             SerializerWrapper serializerWrapper = serializerMap.get(isKey ? topicConfig.getKeyType() : topicConfig.getValueType());
             return serializerWrapper.serializer.serialize(s, serializerWrapper.function.apply(object));
@@ -89,8 +95,6 @@ public class KafkaEsqueSerializer implements Serializer<Object> {
                 return new SerializerWrapper<String>(s -> s, new Base64Serializer());
             case UUID:
                 return new SerializerWrapper<UUID>(UUID::fromString, Serdes.UUID().serializer());
-            case PROTOBUF_SR:
-                return new SerializerWrapper<Message>(JsonUtils::fromJson, protobufSerializer);
             default:
                 throw new UnsupportedOperationException("no serializer for Message type: " + type);
         }
