@@ -30,12 +30,12 @@ import at.esque.kafka.lag.viewer.LagViewerController;
 import at.esque.kafka.topics.CreateTopicController;
 import at.esque.kafka.topics.DescribeTopicController;
 import at.esque.kafka.topics.DescribeTopicWrapper;
-import at.esque.kafka.topics.model.KafkaMessageBookWrapper;
 import at.esque.kafka.topics.KafkaMessage;
-import at.esque.kafka.topics.model.KafkaMessageForMessageBook;
 import at.esque.kafka.topics.metadata.MessageMetaData;
 import at.esque.kafka.topics.metadata.NumericMetadata;
 import at.esque.kafka.topics.metadata.StringMetadata;
+import at.esque.kafka.topics.model.KafkaMessageBookWrapper;
+import at.esque.kafka.topics.model.KafkaMessageForMessageBook;
 import at.esque.kafka.topics.model.Topic;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -49,6 +49,7 @@ import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientExcept
 import javafx.application.HostServices;
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
+import javafx.beans.binding.BooleanBinding;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -64,6 +65,7 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
+import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.ProgressIndicator;
@@ -203,6 +205,12 @@ public class Controller {
     @FXML
     private MenuItem playMessageBookMenu;
     @FXML
+    public Menu clusterMenu;
+    @FXML
+    public Menu schemaRegistryMenu;
+    @FXML
+    public Menu kafkaConnectMenu;
+    @FXML
     private ComboBox<FetchTypes> fetchModeCombobox;
     @FXML
     private Button publishMessageButton;
@@ -337,6 +345,9 @@ public class Controller {
 
         setupClusterCombobox();
         clusterComboBox.setItems(configHandler.loadOrCreateConfigs().getClusterConfigs());
+        clusterMenu.disableProperty().bind(noClusterSelectedBinding());
+        kafkaConnectMenu.disableProperty().bind(noClusterSelectedBinding());
+        schemaRegistryMenu.disableProperty().bind(noClusterSelectedBinding());
 
         jsonTreeView.jsonStringProperty().bind(valueTextArea.textProperty());
         jsonTreeView.visibleProperty().bind(formatJsonToggle.selectedProperty());
@@ -353,6 +364,10 @@ public class Controller {
                     .orElse(null);
             showTextInStageTitle(text);
         });
+    }
+
+    private BooleanBinding noClusterSelectedBinding() {
+        return clusterComboBox.getSelectionModel().selectedItemProperty().isNull();
     }
 
     private void closeAdminClientIfPresentAndClearTopicList() {
@@ -413,7 +428,7 @@ public class Controller {
         publishMessageButton.disableProperty().bind(backgroundTaskInProgressProperty);
         clusterComboBox.disableProperty().bind(backgroundTaskInProgressProperty);
         playMessageBookMenu.disableProperty().bind(backgroundTaskInProgressProperty);
-        editClusterButton.disableProperty().bind(clusterComboBox.getSelectionModel().selectedItemProperty().isNull());
+        editClusterButton.disableProperty().bind(noClusterSelectedBinding());
     }
 
     private void updateKeyValueTextArea(KafkaMessage selectedMessage, boolean formatJson) {
