@@ -561,12 +561,37 @@ public class Controller {
         deleteItem.setGraphic(new FontIcon(FontAwesome.TRASH));
         deleteItem.textProperty().set("delete");
         deleteItem.setOnAction(event -> {
-            if (ConfirmationAlert.show("Delete Topic", "Topic [" + cell.itemProperty().get() + "] will be marked for deletion.", "Are you sure you want to delete this topic")) {
-                try {
-                    adminClient.deleteTopic(cell.itemProperty().get());
-                    SuccessAlert.show("Delete Topic", null, "Topic [" + cell.itemProperty().get() + "] marked for deletion.");
-                } catch (Exception e) {
-                    ErrorAlert.show(e, controlledStage);
+            ObservableList<String>
+                selectedTopics =
+                cell.getListView().getSelectionModel().getSelectedItems();
+            if (selectedTopics.size() == 1) {
+                String topic = selectedTopics.get(0);
+                if (ConfirmationAlert.show("Delete Topic", "Topic [" + topic + "] will be marked for deletion.", "Are you sure you want to delete this topic?")) {
+                    try {
+                        adminClient.deleteTopic(cell.itemProperty().get());
+                        SuccessAlert.show("Delete Topic", null, "Topic [" + topic + "] marked for deletion.");
+                    } catch (Exception e) {
+                        ErrorAlert.show(e, controlledStage);
+                    }
+                }
+            } else if (selectedTopics.size() > 1) {
+                if (ConfirmationAlert.show(
+                    "Delete Topics",
+                    "Topics will be marked for deletion.",
+                    "Are you sure you want to delete the selected topics?"
+                )) {
+                    try {
+                        for (String topic : selectedTopics) {
+                            adminClient.deleteTopic(topic);
+                        }
+                        SuccessAlert.show(
+                            "Delete Topics",
+                            null,
+                            "Topics marked for deletion."
+                        );
+                    } catch (Exception e) {
+                        ErrorAlert.show(e, controlledStage);
+                    }
                 }
             }
         });

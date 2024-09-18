@@ -16,6 +16,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Button;
 import javafx.scene.control.ListView;
+import javafx.scene.control.SelectionMode;
 import javafx.scene.control.TextField;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
@@ -88,7 +89,6 @@ public class FilterableListView<T> extends VBox {
             }
         });
         listView.setOnKeyPressed(generateListEventHandler());
-
         bindButtonProperties();
     }
 
@@ -212,6 +212,14 @@ public class FilterableListView<T> extends VBox {
             return "onRefreshAction";
         }
     };
+
+    public final void setMultiselect(boolean value) {
+        listView.getSelectionModel().setSelectionMode(value ? SelectionMode.MULTIPLE : SelectionMode.SINGLE);
+    }
+
+    public final boolean getMultiselect() {
+        return listView.getSelectionModel().getSelectionMode() == SelectionMode.MULTIPLE;
+    }
 
     public void setListComparator(Comparator<T> comparator) {
         this.sortedList.setComparator(comparator);
