@@ -30,11 +30,12 @@ import at.esque.kafka.lag.viewer.LagViewerController;
 import at.esque.kafka.topics.CreateTopicController;
 import at.esque.kafka.topics.DescribeTopicController;
 import at.esque.kafka.topics.DescribeTopicWrapper;
-import at.esque.kafka.topics.KafkaMessagBookWrapper;
 import at.esque.kafka.topics.KafkaMessage;
 import at.esque.kafka.topics.metadata.MessageMetaData;
 import at.esque.kafka.topics.metadata.NumericMetadata;
 import at.esque.kafka.topics.metadata.StringMetadata;
+import at.esque.kafka.topics.model.KafkaMessageBookWrapper;
+import at.esque.kafka.topics.model.KafkaMessageForMessageBook;
 import at.esque.kafka.topics.model.Topic;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -48,6 +49,7 @@ import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientExcept
 import javafx.application.HostServices;
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
+import javafx.beans.binding.BooleanBinding;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -63,6 +65,7 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
+import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.ProgressIndicator;
@@ -202,6 +205,12 @@ public class Controller {
     @FXML
     private MenuItem playMessageBookMenu;
     @FXML
+    public Menu clusterMenu;
+    @FXML
+    public Menu schemaRegistryMenu;
+    @FXML
+    public Menu kafkaConnectMenu;
+    @FXML
     private ComboBox<FetchTypes> fetchModeCombobox;
     @FXML
     private Button publishMessageButton;
@@ -336,6 +345,9 @@ public class Controller {
 
         setupClusterCombobox();
         clusterComboBox.setItems(configHandler.loadOrCreateConfigs().getClusterConfigs());
+        clusterMenu.disableProperty().bind(noClusterSelectedBinding());
+        kafkaConnectMenu.disableProperty().bind(noClusterSelectedBinding());
+        schemaRegistryMenu.disableProperty().bind(noClusterSelectedBinding());
 
         jsonTreeView.jsonStringProperty().bind(valueTextArea.textProperty());
         jsonTreeView.visibleProperty().bind(formatJsonToggle.selectedProperty());
@@ -352,6 +364,10 @@ public class Controller {
                     .orElse(null);
             showTextInStageTitle(text);
         });
+    }
+
+    private BooleanBinding noClusterSelectedBinding() {
+        return clusterComboBox.getSelectionModel().selectedItemProperty().isNull();
     }
 
     private void closeAdminClientIfPresentAndClearTopicList() {
@@ -412,7 +428,7 @@ public class Controller {
         publishMessageButton.disableProperty().bind(backgroundTaskInProgressProperty);
         clusterComboBox.disableProperty().bind(backgroundTaskInProgressProperty);
         playMessageBookMenu.disableProperty().bind(backgroundTaskInProgressProperty);
-        editClusterButton.disableProperty().bind(clusterComboBox.getSelectionModel().selectedItemProperty().isNull());
+        editClusterButton.disableProperty().bind(noClusterSelectedBinding());
     }
 
     private void updateKeyValueTextArea(KafkaMessage selectedMessage, boolean formatJson) {
@@ -560,12 +576,37 @@ public class Controller {
         deleteItem.setGraphic(new FontIcon(FontAwesome.TRASH));
         deleteItem.textProperty().set("delete");
         deleteItem.setOnAction(event -> {
-            if (ConfirmationAlert.show("Delete Topic", "Topic [" + cell.itemProperty().get() + "] will be marked for deletion.", "Are you sure you want to delete this topic")) {
-                try {
-                    adminClient.deleteTopic(cell.itemProperty().get());
-                    SuccessAlert.show("Delete Topic", null, "Topic [" + cell.itemProperty().get() + "] marked for deletion.");
-                } catch (Exception e) {
-                    ErrorAlert.show(e, controlledStage);
+            ObservableList<String>
+                selectedTopics =
+                cell.getListView().getSelectionModel().getSelectedItems();
+            if (selectedTopics.size() == 1) {
+                String topic = selectedTopics.get(0);
+                if (ConfirmationAlert.show("Delete Topic", "Topic [" + topic + "] will be marked for deletion.", "Are you sure you want to delete this topic?")) {
+                    try {
+                        adminClient.deleteTopic(cell.itemProperty().get());
+                        SuccessAlert.show("Delete Topic", null, "Topic [" + topic + "] marked for deletion.");
+                    } catch (Exception e) {
+                        ErrorAlert.show(e, controlledStage);
+                    }
+                }
+            } else if (selectedTopics.size() > 1) {
+                if (ConfirmationAlert.show(
+                    "Delete Topics",
+                    "Topics will be marked for deletion.",
+                    "Are you sure you want to delete the selected topics?"
+                )) {
+                    try {
+                        for (String topic : selectedTopics) {
+                            adminClient.deleteTopic(topic);
+                        }
+                        SuccessAlert.show(
+                            "Delete Topics",
+                            null,
+                            "Topics marked for deletion."
+                        );
+                    } catch (Exception e) {
+                        ErrorAlert.show(e, controlledStage);
+                    }
                 }
             }
         });
@@ -1478,7 +1519,7 @@ public class Controller {
                     backGroundTaskHolder.setIsInProgress(true);
                     List<File> listedFiles = Arrays.asList(Objects.requireNonNull(selectedFolder.listFiles()));
                     Map<String, String> replacementMap = new HashMap<>();
-                    List<KafkaMessagBookWrapper> messagesToSend = new ArrayList<>();
+                    List<KafkaMessageBookWrapper> messagesToSend = new ArrayList<>();
                     Platform.runLater(() -> backGroundTaskHolder.setBackGroundTaskDescription("Playing Message Book: scanning messages"));
                     listedFiles.forEach(file -> {
                         if (!topicListView.getBaseList().contains(file.getName())) {
@@ -1492,7 +1533,7 @@ public class Controller {
                     applyReplacements(messagesToSend, replacementMap);
                     Platform.runLater(() -> backGroundTaskHolder.setBackGroundTaskDescription("Playing Message Book: producing messages"));
                     AtomicInteger counter = new AtomicInteger(0);
-                    messagesToSend.stream().sorted(Comparator.comparing(KafkaMessagBookWrapper::getTimestamp, Comparator.nullsLast(Comparator.naturalOrder())))
+                    messagesToSend.stream().sorted(Comparator.comparing(KafkaMessageBookWrapper::getTimestamp, Comparator.nullsLast(Comparator.naturalOrder())))
                             .forEach(message -> {
                                 try {
                                     UUID producerId = topicToProducerMap.computeIfAbsent(message.getTargetTopic(), targetTopic -> {
@@ -1521,26 +1562,26 @@ public class Controller {
         }
     }
 
-    private void applyReplacements(List<KafkaMessagBookWrapper> messagesToSend, Map<String, String> replacementMap) {
+    private void applyReplacements(List<KafkaMessageBookWrapper> messagesToSend, Map<String, String> replacementMap) {
         messagesToSend.forEach(messageToSend -> replacementMap.forEach((key, value) -> {
             messageToSend.setKey(messageToSend.getKey().replace(key, value));
             messageToSend.setValue(messageToSend.getValue().replace(key, value));
         }));
     }
 
-    private void addMessagesToSend(List<KafkaMessagBookWrapper> messagesToSend, File playFile) {
+    void addMessagesToSend(List<KafkaMessageBookWrapper> messagesToSend, File playFile) {
         try {
-            List<KafkaMessage> messages = new CsvToBeanBuilder<KafkaMessage>(new FileReader(playFile.getAbsolutePath()))
-                    .withType(KafkaMessage.class)
+            List<KafkaMessageForMessageBook> messages = new CsvToBeanBuilder<KafkaMessageForMessageBook>(new FileReader(playFile.getAbsolutePath()))
+                    .withType(KafkaMessageForMessageBook.class)
                     .build().parse();
-            messagesToSend.addAll(messages.stream().map(message -> new KafkaMessagBookWrapper(playFile.getName(), message))
+            messagesToSend.addAll(messages.stream().map(message -> new KafkaMessageBookWrapper(playFile.getName(), message))
                     .toList());
         } catch (FileNotFoundException e) {
             Platform.runLater(() -> ErrorAlert.show(e, controlledStage));
         }
     }
 
-    private void addReplacementEntries(Map<String, String> replacementMap, KafkaMessagBookWrapper message) {
+    private void addReplacementEntries(Map<String, String> replacementMap, KafkaMessageBookWrapper message) {
         addReplacementEntries(replacementMap, message.getKey());
         addReplacementEntries(replacementMap, message.getValue());
     }

@@ -11,7 +11,7 @@ plugins {
 }
 
 group = 'at.esque.kafka'
-version = '2.10.0'
+version = '2.9.5'
 
 repositories {
     mavenCentral()
@@ -122,6 +122,10 @@ task versionFile() {
 "name": "KakfaEsque"
 }"""
     }
+}
+
+test {
+    useJUnit()
 }
 
 tasks.named('processResources') { dependsOn('versionFile') }

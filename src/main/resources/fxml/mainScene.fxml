@@ -100,7 +100,8 @@
                             <center>
                                 <FilterableListView fx:id="topicListView" onAddAction="#createTopicButtonClick"
                                                     onRefreshAction="#refreshButtonClick"
-                                                    BorderPane.alignment="CENTER"/>
+                                                    BorderPane.alignment="CENTER"
+                                                    multiselect="true"/>
                             </center>
                         </BorderPane>
                         <BorderPane prefHeight="200.0" prefWidth="200.0">
@@ -196,7 +197,7 @@
                                 </MenuItem>
                             </items>
                         </Menu>
-                        <Menu mnemonicParsing="false" text="Cluster">
+                        <Menu mnemonicParsing="false" text="Cluster" fx:id="clusterMenu">
                             <items>
                                 <MenuItem fx:id="playMessageBookMenu" mnemonicParsing="false"
                                           onAction="#playMessageBook" text="Play Message Book">
@@ -228,7 +229,7 @@
                                 </MenuItem>
                             </items>
                         </Menu>
-                        <Menu mnemonicParsing="false" text="Schema Registry">
+                        <Menu mnemonicParsing="false" text="Schema Registry" fx:id="schemaRegistryMenu">
                             <items>
                                 <MenuItem mnemonicParsing="false" onAction="#schemaRegistryClick"
                                           text="Schema registry Browser">
@@ -238,7 +239,7 @@
                                 </MenuItem>
                             </items>
                         </Menu>
-                        <Menu mnemonicParsing="false" text="Kafka Connect">
+                        <Menu mnemonicParsing="false" text="Kafka Connect" fx:id="kafkaConnectMenu">
                             <items>
                                 <MenuItem mnemonicParsing="false" onAction="#kafkaConnectClick"
                                           text="Kafka Connect Browser">
